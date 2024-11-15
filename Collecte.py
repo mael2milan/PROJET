@@ -1,7 +1,6 @@
-#!/bin/env python3
-
 import PyPDF2
-from EbookLib import epub
+
+from ebooklib import epub
 
 ########## 1
 
