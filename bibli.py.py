@@ -174,8 +174,24 @@ class bibli(base_bibli):
             raise RuntimeError(f"Erreur lors du téléchargement de {file_url} : {e}")
 
 
+if __name__ == "__main__":
+    # Remplacez par un chemin valide sur votre système
+    chemin_bibliotheque = r"C:\Users\diaou\OneDrive\Bureau\Pyhon M1 DS\Collecte_de_livres\Bibliothèque"
+    
+    # Vérification que le chemin existe ou création automatique
+    if not os.path.exists(chemin_bibliotheque):
+        os.makedirs(chemin_bibliotheque)
+        print(f"Le répertoire {chemin_bibliotheque} a été créé.")
 
+    # Initialisation de la bibliothèque
+    ma_bibli = bibli(chemin_bibliotheque)
 
+    # URL pour tester l'alimentation
+    url_test = "https://math.univ-angers.fr/~jaclin/biblio/livres/"
+    ma_bibli.alimenter(url_test, disable_ssl=True)
+
+    # Génération du rapport des livres
+    ma_bibli.rapport_livres("TXT", "rapport_livres.txt")
 
 
 
