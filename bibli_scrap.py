@@ -1,16 +1,17 @@
-#!/bin/env python3 
-
-
-import os
 import requests
+import urllib3
+import os
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
+
+# Désactiver les avertissements liés à SSL
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class bibli_scrap:
     def __init__(self):
         self.downloaded_files = 0
         self.visited_urls = set()
-    
+
     def scrap(self, url, profondeur, nbmax):
         """
         Réalise le web scraping pour télécharger les fichiers PDF et EPUB.
@@ -24,19 +25,20 @@ class bibli_scrap:
     def _scrap_recursive(self, url, profondeur, nbmax, current_depth=0):
         if current_depth >= profondeur or self.downloaded_files >= nbmax or url in self.visited_urls:
             return
-        
+
         print(f"Exploring: {url} (Depth: {current_depth})")
         self.visited_urls.add(url)
-        
+
         try:
-            response = requests.get(url, timeout=10)
+            # Tentez d'utiliser 'verify=False' pour ignorer les erreurs SSL
+            response = requests.get(url, timeout=10, verify=False)  
             response.raise_for_status()
-        except (requests.RequestException, ValueError) as e:
-            print(f"Failed to fetch {url}: {e}")
+        except requests.RequestException as e:
+            print(f"Erreur lors de l'alimentation depuis l'URL {url} : {e}")
             return
-        
+
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         # Télécharger les fichiers PDF et EPUB référencés
         for link in soup.find_all('a', href=True):
             file_url = urljoin(url, link['href'])
@@ -44,7 +46,7 @@ class bibli_scrap:
                 break
             if self._is_valid_file(file_url):
                 self._download_file(file_url)
-        
+
         # Explorer les liens vers d'autres pages
         for link in soup.find_all('a', href=True):
             next_url = urljoin(url, link['href'])
@@ -56,8 +58,7 @@ class bibli_scrap:
         Vérifie si l'URL correspond à un fichier PDF ou EPUB.
         """
         file_extensions = ['.pdf', '.epub']
-        parsed_url = urlparse(file_url)
-        return any(parsed_url.path.endswith(ext) for ext in file_extensions)
+        return any(file_url.endswith(ext) for ext in file_extensions)
     
     def _is_valid_url(self, next_url):
         """
@@ -70,19 +71,22 @@ class bibli_scrap:
         Télécharge le fichier depuis l'URL et l'enregistre localement.
         """
         try:
-            response = requests.get(file_url, stream=True, timeout=10)
+            response = requests.get(file_url, stream=True, timeout=10, verify=False)
             response.raise_for_status()
-            
-            filename = os.path.basename(urlparse(file_url).path)
+
+            filename = file_url.split('/')[-1]
             folder = 'downloads'
             os.makedirs(folder, exist_ok=True)
             file_path = os.path.join(folder, filename)
-            
+
             with open(file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            
+
             self.downloaded_files += 1
             print(f"Downloaded: {filename} -> {file_path}")
-        except (requests.RequestException, IOError) as e:
+        except requests.RequestException as e:
             print(f"Failed to download {file_url}: {e}")
+
+
+
