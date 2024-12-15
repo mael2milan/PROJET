@@ -1,11 +1,11 @@
-
+#!/usr/bin/env python3
 
 import os
 import requests
 from urllib.parse import urlparse
 
 class FileDownloader:
-    def __init__(self, download_folder='downloads'):
+    def __init__(self, download_folder):
         self.download_folder = download_folder
         os.makedirs(self.download_folder, exist_ok=True)
     
