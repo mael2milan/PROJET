@@ -1,155 +1,84 @@
-import os
+#!/usr/bin/env python3
+
+import argparse
 import configparser
-import requests
-from argparse import ArgumentParser
-from pathlib import Path
-import re
-import urllib3
+import os
+from bibli_scrap import bibli_scrap
+from simple_bibli import simple_bibli
 
-# Désactiver l'avertissement InsecureRequestWarning
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def lire_configuration(fichier_conf):
+    """
+    Lit le fichier de configuration et retourne les paramètres sous forme de dictionnaire.
+    """
+    config = configparser.ConfigParser()
+    config.read(fichier_conf)
+    return {
+        'bibliotheque': config['DEFAULT']['bibliotheque'],
+        'etats': config['DEFAULT']['etats'],
+        'nbmax': int(config['DEFAULT']['nbmax'])
+    }
 
-class Bibliotheque:
-    def __init__(self, conf_file):
-        # Lire les configurations
-        self.conf_file = conf_file
-        self.config = configparser.ConfigParser()
-        self.config.read(conf_file)
-        
-        # Initialisation des paramètres
-        self.livres_dir = self.config.get('bibliotheque', 'livres')
-        self.etats_dir = self.config.get('bibliotheque', 'etats')
-        self.nbmax = int(self.config.get('bibliotheque', 'nbmax'))
+def collecte(url, profondeur, config):
+    """
+    Lance une collecte de livres depuis l'URL donnée jusqu'à une certaine profondeur.
+    """
+    download_folder = config['bibliotheque']
+    bibliotheque = bibli_scrap(download_folder=download_folder)
+    bibliotheque.scrap(url, profondeur, config['nbmax'])
+    print(f"Collecte terminée. Les livres sont enregistrés dans {download_folder}.")
+
+def generation_rapports(config):
+    """
+    Génère les rapports des livres et des auteurs en PDF et EPUB.
+    """
+    chemin_bibli = config['bibliotheque']
+    chemin_etats = config['etats']
+    bibliotheque = simple_bibli(chemin_bibli)
     
-    def get_config(self):
-        return {
-            'livres_dir': self.livres_dir,
-            'etats_dir': self.etats_dir,
-            'nbmax': self.nbmax
-        }
-
-class FileDownloader:
-    def __init__(self, livres_dir):
-        self.livres_dir = Path(livres_dir)
-        self.livres_dir.mkdir(parents=True, exist_ok=True)
-
-    def download_file(self, url):
-        try:
-            response = requests.get(url, verify=False)  # Désactivation de la vérification SSL
-            response.raise_for_status()
-            filename = Path(url).name
-            file_path = self.livres_dir / filename
-            with open(file_path, 'wb') as file:
-                file.write(response.content)
-            print(f"File downloaded: {file_path}")
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading {url}: {e}")
-
-class WebScraper:
-    def __init__(self, downloader, max_depth, max_files):
-        self.downloader = downloader
-        self.max_depth = max_depth
-        self.max_files = max_files
-        self.visited_urls = set()
-        self.files_downloaded = 0
-
-    def scrape(self, url, depth=0):
-        if depth > self.max_depth or self.files_downloaded >= self.max_files:
-            return
-        if url in self.visited_urls:
-            return
-        self.visited_urls.add(url)
-
-        print(f"Exploring: {url} (Depth: {depth})")
-
-        try:
-            response = requests.get(url, verify=False)  # Désactivation de la vérification SSL
-            response.raise_for_status()
-            html = response.text
-
-            print(f"Successfully fetched: {url} (Status code: {response.status_code})")
-
-            # Extraire les liens et télécharger les fichiers PDF/EPUB
-            self._download_files_from_html(html)
-            
-            # Extraire les liens et scraper récursivement les pages suivantes
-            links = self._extract_links(html, url)
-            for link in links:
-                self.scrape(link, depth + 1)
-        except requests.exceptions.RequestException as e:
-            print(f"Request Error: Failed to fetch {url}: {e}")
-
-    def _extract_links(self, html, base_url):
-        # Extraire les liens dans la page HTML (en utilisant une expression régulière simple)
-        links = re.findall(r'href=["\'](https?://\S+)', html)
-        return links
-
-    def _download_files_from_html(self, html):
-        # Extraire et télécharger les fichiers PDF/EPUB depuis les liens trouvés
-        if self.files_downloaded < self.max_files:
-            # Rechercher des liens vers des fichiers PDF ou EPUB dans le HTML
-            links = re.findall(r'href=["\'](https?://\S+\.(pdf|epub))', html)
-
-            for link in links:
-                if self.files_downloaded < self.max_files:
-                    print(f"Downloading file from {link[0]}")
-                    self.downloader.download_file(link[0])
-                    self.files_downloaded += 1
-                else:
-                    break
-
-class ReportGenerator:
-    def __init__(self, etats_dir):
-        self.etats_dir = Path(etats_dir)
-        self.etats_dir.mkdir(parents=True, exist_ok=True)
-
-    def generate_reports(self):
-        # Logic for generating PDF and EPUB reports
-        pdf_report = self.etats_dir / "report.pdf"
-        epub_report = self.etats_dir / "report.epub"
-        
-        with open(pdf_report, 'w') as f:
-            f.write("PDF Report Content")
-        with open(epub_report, 'w') as f:
-            f.write("EPUB Report Content")
-        
-        print(f"Reports generated: {pdf_report}, {epub_report}")
+    # Rapports des livres
+    rapport_livres_pdf = os.path.join(chemin_etats, "rapport_livres.pdf")
+    rapport_livres_epub = os.path.join(chemin_etats, "rapport_livres.epub")
+    bibliotheque.rapport_livres("PDF", rapport_livres_pdf)
+    bibliotheque.rapport_livres("EPUB", rapport_livres_epub)
+    
+    # Rapports des auteurs
+    rapport_auteurs_pdf = os.path.join(chemin_etats, "rapport_auteurs.pdf")
+    rapport_auteurs_epub = os.path.join(chemin_etats, "rapport_auteurs.epub")
+    bibliotheque.rapport_auteurs("PDF", rapport_auteurs_pdf)
+    bibliotheque.rapport_auteurs("EPUB", rapport_auteurs_epub)
+    
+    print(f"Les rapports ont été générés dans {chemin_etats}.")
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument('-c', '--config', help="Path to the configuration file", default="bibli.conf")
-    subparsers = parser.add_subparsers(dest="command")
-
-    # Subcommand: url
-    parser_url = subparsers.add_parser('url', help="Start scraping from a given URL")
-    parser_url.add_argument('url', help="The starting URL for scraping")
-    parser_url.add_argument('depth', type=int, help="Maximum depth to scrape")
-
-    # Subcommand: rapports
-    parser_rapports = subparsers.add_parser('rapports', help="Generate reports")
+    # Argument parser pour gérer les options en ligne de commande
+    parser = argparse.ArgumentParser(description="Application de gestion de bibliothèque.")
+    parser.add_argument("-c", "--config", default="bibli.conf", help="Spécifie le fichier de configuration.")
+    parser.add_argument("action", choices=["url", "rapports"], help="Action à effectuer : collecte depuis une URL ou génération de rapports.")
+    parser.add_argument("param", nargs="?", help="Paramètre additionnel (URL ou profondeur).")
 
     args = parser.parse_args()
 
-    # Load configuration
-    bibli = Bibliotheque(args.config)
-    config = bibli.get_config()
-
-    # Command: url
-    if args.command == "url":
-        downloader = FileDownloader(config['livres_dir'])
-        scraper = WebScraper(downloader, max_depth=args.depth, max_files=config['nbmax'])
-        scraper.scrape(args.url, depth=0)
-
-    # Command: rapports
-    elif args.command == "rapports":
-        report_generator = ReportGenerator(config['etats_dir'])
-        report_generator.generate_reports()
+    # Lire le fichier de configuration
+    config = lire_configuration(args.config)
+    # Actions
+    if args.action == "url":
+        if not args.param:
+            print("Erreur : Une URL est nécessaire pour l'action 'url'.")
+            return
+        profondeur = 1  # Profondeur par défaut
+        if args.param.isdigit():
+            profondeur = int(args.param)
+            print(f"Profondeur définie sur {profondeur}.")
+        else:
+            print(f"URL détectée : {args.param}")
+            collecte(args.param, profondeur, config)
+    elif args.action == "rapports":
+        generation_rapports(config)
+    else:
+        print("Action inconnue. Utilisez 'url' ou 'rapports'.")
 
 if __name__ == "__main__":
     main()
-
-""" Pour l'exécuter sur windows, il faut mettre python bibli_partie_3.py url https://math.univ-angers.fr/~jaclin/biblio/livres/ 3
-et pour le rapport mettre python bibli_partie_3.py rapports"""
 
 
 
