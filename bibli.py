@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import os
 import requests
@@ -177,7 +178,7 @@ class bibli(base_bibli):
 
 if __name__ == "__main__":
     # Remplacez par un chemin valide sur votre système
-    chemin_bibliotheque = r"C:\Users\diaou\OneDrive\Bureau\Pyhon M1 DS\Collecte_de_livres\Bibliothèque"
+    chemin_bibliotheque = r"/home/ousmane/Projet_POO/Bibliothèque_partie1"
     
     # Vérification que le chemin existe ou création automatique
     if not os.path.exists(chemin_bibliotheque):
@@ -193,10 +194,6 @@ if __name__ == "__main__":
 
     # Génération du rapport des livres
     ma_bibli.rapport_livres("TXT", "rapport_livres.txt")
-
-
-
-
 
 
 
