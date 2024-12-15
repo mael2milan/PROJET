@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import requests
 import urllib3
 import os
@@ -8,9 +10,12 @@ from urllib.parse import urljoin
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class bibli_scrap:
-    def __init__(self):
+    def __init__(self,download_folder):
         self.downloaded_files = 0
         self.visited_urls = set()
+        self.download_folder = download_folder
+        os.makedirs(self.download_folder, exist_ok=True)
+
 
     def scrap(self, url, profondeur, nbmax):
         """
@@ -74,10 +79,8 @@ class bibli_scrap:
             response = requests.get(file_url, stream=True, timeout=10, verify=False)
             response.raise_for_status()
 
-            filename = file_url.split('/')[-1]
-            folder = 'downloads'
-            os.makedirs(folder, exist_ok=True)
-            file_path = os.path.join(folder, filename)
+            filename = os.path.basename(file_url)
+            file_path = os.path.join(self.download_folder, filename)
 
             with open(file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -88,5 +91,15 @@ class bibli_scrap:
         except requests.RequestException as e:
             print(f"Failed to download {file_url}: {e}")
 
+if __name__ == "__main__":
+    # URL à scraper
+    url = "https://math.univ-angers.fr/~jaclin/biblio/livres/"
 
+    # Répertoire de téléchargement pour ce test
+    download_folder = "/home/ousmane/Projet_POO/downloads"
 
+    # Initialiser et lancer le scraping
+    scraper = bibli_scrap(download_folder=download_folder)
+    scraper.scrap(url, profondeur=1, nbmax=10)
+
+    print(f"Test terminé. Les fichiers téléchargés se trouvent dans {download_folder}.")
