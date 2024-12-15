@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 from ebooklib import epub
 from PyPDF2 import PdfReader
@@ -124,16 +125,16 @@ class simple_bibli(base_bibli):
                     f.write(f"    - Titre : {livre.titre()}, Type : {livre.type()}, Fichier : {livre.chemin()}\n")
         print(f"Rapport des auteurs généré : {fichier}")
 
+if __name__ == "__main__":
+    chemin_livres = r"/home/ousmane/Projet_POO/Livre"
+    bibliotheque = simple_bibli(chemin_livres)
 
-chemin_livres = r"C:\Users\diaou\OneDrive\Bureau\Pyhon M1 DS\Collecte_de_livres\Livre"
-bibliotheque = simple_bibli(chemin_livres)
+    # Générer un rapport des livres
+    rapport_livres_fichier = r"/home/ousmane/Projet_POO/Livre/rapport_livres.txt"
+    bibliotheque.rapport_livres("TXT", rapport_livres_fichier)
 
-# Générer un rapport des livres
-rapport_livres_fichier = r"C:\Users\diaou\OneDrive\Bureau\Pyhon M1 DS\Collecte_de_livres\Livre\rapport_livres.txt"
-bibliotheque.rapport_livres("TXT", rapport_livres_fichier)
+    # Générer un rapport des auteurs
+    rapport_auteurs_fichier = r"/home/ousmane/Projet_POO/Livre/rapport_auteurs.txt"
+    bibliotheque.rapport_auteurs("TXT", rapport_auteurs_fichier)
 
-# Générer un rapport des auteurs
-rapport_auteurs_fichier = r"C:\Users\diaou\OneDrive\Bureau\Pyhon M1 DS\Collecte_de_livres\Livre\rapport_auteurs.txt"
-bibliotheque.rapport_auteurs("TXT", rapport_auteurs_fichier)
-
-print("Les rapports ont été générés avec succès !")
+    print("Les rapports ont été générés avec succès !")
