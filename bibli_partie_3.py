@@ -49,29 +49,26 @@ def generation_rapports(config):
     
     print(f"Les rapports ont été générés dans {chemin_etats}.")
 
+
 def main():
     # Argument parser pour gérer les options en ligne de commande
     parser = argparse.ArgumentParser(description="Application de gestion de bibliothèque.")
     parser.add_argument("-c", "--config", default="bibli.conf", help="Spécifie le fichier de configuration.")
     parser.add_argument("action", choices=["url", "rapports"], help="Action à effectuer : collecte depuis une URL ou génération de rapports.")
-    parser.add_argument("param", nargs="?", help="Paramètre additionnel (URL ou profondeur).")
+    parser.add_argument("url", nargs="?", help="URL à collecter, nécessaire pour l'action 'url'.")
+    parser.add_argument("profondeur", nargs="?", type=int, default=1, help="Profondeur de la collecte, par défaut 1.")
 
     args = parser.parse_args()
 
     # Lire le fichier de configuration
     config = lire_configuration(args.config)
+
     # Actions
     if args.action == "url":
-        if not args.param:
+        if not args.url:
             print("Erreur : Une URL est nécessaire pour l'action 'url'.")
             return
-        profondeur = 1  # Profondeur par défaut
-        if args.param.isdigit():
-            profondeur = int(args.param)
-            print(f"Profondeur définie sur {profondeur}.")
-        else:
-            print(f"URL détectée : {args.param}")
-            collecte(args.param, profondeur, config)
+        collecte(args.url, args.profondeur, config)
     elif args.action == "rapports":
         generation_rapports(config)
     else:
